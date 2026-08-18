@@ -8,6 +8,8 @@ TITULO = "Coletor de Tesouros"
 VELOCIDADE_JOGADOR = 4
 QUANTIDADE_MOEDAS = 25
 PONTOS_MOEDA_ESPECIAL = 5
+GRAVIDADE = 0.5
+FORCA_PULO = 15
 PONTUACAO_MAXIMA = QUANTIDADE_MOEDAS + PONTOS_MOEDA_ESPECIAL
 
 
@@ -30,7 +32,6 @@ class Jogador(arcade.Sprite):
 
     def update(self, delta_time=1 / 60):
         self.center_x += self.change_x
-        self.center_y += self.change_y
 
         if self.change_x > 0:
             self.texture = self.textura_direita
@@ -41,10 +42,7 @@ class Jogador(arcade.Sprite):
             self.left = 0
         if self.right > LARGURA:
             self.right = LARGURA
-        if self.bottom < 0:
-            self.bottom = 0
-        if self.top > ALTURA:
-            self.top = ALTURA
+
 
 
 class Moeda(arcade.Sprite):
@@ -233,6 +231,41 @@ class TelaJogo(arcade.View):
         self.jogador.center_y = ALTURA / 2
         self.lista_jogador.append(self.jogador)
 
+        self.lista_paredes = arcade.SpriteList()
+
+        chao = arcade.SpriteSolidColor(
+            LARGURA,
+            30,
+            arcade.color.DARK_GREEN,
+        )
+        chao.center_x = LARGURA / 2
+        chao.center_y = 15
+        self.lista_paredes.append(chao)
+
+        plataformas = [
+            (150, 160, 180, 20),
+            (400, 270, 180, 20),
+            (650, 380, 180, 20),
+        ]
+
+        for x, y, largura, altura in plataformas:
+            plataforma = arcade.SpriteSolidColor(
+                largura,
+                altura,
+                arcade.color.DARK_GREEN,
+            )
+            plataforma.center_x = x
+            plataforma.center_y = y
+
+            self.lista_paredes.append(plataforma)
+
+        self.physics_engine = arcade.PhysicsEnginePlatformer(
+            self.jogador,
+            platforms=self.lista_paredes,
+            gravity_constant=GRAVIDADE,
+        )
+
+
         for i in range(QUANTIDADE_MOEDAS):
             moeda = Moeda()
             self.posicionar_sem_colisao(moeda, self.lista_moedas)
@@ -286,6 +319,7 @@ class TelaJogo(arcade.View):
 
     def on_draw(self):
         self.clear()
+        self.lista_paredes.draw()
 
         self.lista_moedas.draw()
         self.lista_inimigos.draw()
@@ -323,6 +357,8 @@ class TelaJogo(arcade.View):
         self.lista_moedas.update()
         self.lista_inimigos.update()
         self.lista_inimigo_especial.update()
+
+        self.physics_engine.update()
 
         if self.tempo_alerta > 0:
             self.tempo_alerta -= delta_time
@@ -376,26 +412,18 @@ class TelaJogo(arcade.View):
             self.window.show_view(tela_final)
 
     def on_key_press(self, key, modifiers):
-        if key == arcade.key.UP or key == arcade.key.W:
-            self.jogador.change_y = VELOCIDADE_JOGADOR
-        elif key == arcade.key.DOWN or key == arcade.key.S:
-            self.jogador.change_y = -VELOCIDADE_JOGADOR
-        elif key == arcade.key.LEFT or key == arcade.key.A:
+        if key == arcade.key.LEFT or key == arcade.key.A:
             self.jogador.change_x = -VELOCIDADE_JOGADOR
         elif key == arcade.key.RIGHT or key == arcade.key.D:
             self.jogador.change_x = VELOCIDADE_JOGADOR
         elif key == arcade.key.ESCAPE:
             self.window.show_view(TelaMenu())
+        elif key == arcade.key.SPACE:
+            if self.physics_engine.can_jump():
+                self.jogador.change_y = FORCA_PULO
+
 
     def on_key_release(self, key, modifiers):
-        if key in [
-            arcade.key.UP,
-            arcade.key.DOWN,
-            arcade.key.W,
-            arcade.key.S,
-        ]:
-            self.jogador.change_y = 0
-
         if key in [
             arcade.key.LEFT,
             arcade.key.RIGHT,
