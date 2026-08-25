@@ -31,8 +31,6 @@ class Jogador(arcade.Sprite):
         self.textura_esquerda = arcade.load_texture("personagem-esquerda.png")
 
     def update(self, delta_time=1 / 60):
-        self.center_x += self.change_x
-
         if self.change_x > 0:
             self.texture = self.textura_direita
         elif self.change_x < 0:
@@ -48,6 +46,10 @@ class Jogador(arcade.Sprite):
 class Moeda(arcade.Sprite):
     def __init__(self):
         super().__init__("moeda.png", scale=0.08)
+
+class Plataforma(arcade.Sprite):
+    def __init__(self):
+        super().__init__("plataforma.png", scale=0.5)
 
 
 class MoedaEspecial(arcade.Sprite):
@@ -73,35 +75,46 @@ class MoedaEspecial(arcade.Sprite):
             self.change_y *= -1
 
 
-class Inimigo(arcade.Sprite):
-    def __init__(self):
-        super().__init__("espinho.png", scale=0.05)
+class InimigoPlataforma(arcade.Sprite):
+    def __init__(self, plataforma, velocidade=2):
+        super().__init__("inimigoDireita.png", scale=0.05)
+
+        self.textura_direita = arcade.load_texture("inimigoDireita.png")
+        self.textura_esquerda = arcade.load_texture("inimigoEsquerda.png")
+
+        self.change_x = velocidade
+
+        self.limite_esquerda = plataforma.left
+        self.limite_direita = plataforma.right
+
+        self.center_x = plataforma.center_x
+        self.center_y = plataforma.top + self.height / 2
 
     def update(self, delta_time=1 / 60):
         self.center_x += self.change_x
-        self.center_y += self.change_y
 
-        if self.left < 0:
-            self.left = 0
-            self.change_x *= -1
-        elif self.right > LARGURA:
-            self.right = LARGURA
-            self.change_x *= -1
+        if self.change_x > 0:
+            self.texture = self.textura_direita
+        elif self.change_x < 0:
+            self.texture = self.textura_esquerda
 
-        if self.bottom < 0:
-            self.bottom = 0
-            self.change_y *= -1
-        elif self.top > ALTURA:
-            self.top = ALTURA
-            self.change_y *= -1
+        if self.left <= self.limite_esquerda:
+            self.left = self.limite_esquerda
+            self.change_x = abs(self.change_x)
+            self.texture = self.textura_direita
+
+        elif self.right >= self.limite_direita:
+            self.right = self.limite_direita
+            self.change_x = -abs(self.change_x)
+            self.texture = self.textura_esquerda
 
 
 class InimigoEspecial(arcade.Sprite):
     def __init__(self, jogador):
-        super().__init__("espinho.png", scale=0.09)
+        super().__init__("espinho.png", scale=0.08)
 
         self.jogador = jogador
-        self.velocidade = 1.5
+        self.velocidade = 1.2
 
     def update(self, delta_time=1 / 60):
         if self.center_x < self.jogador.center_x:
@@ -116,13 +129,28 @@ class InimigoEspecial(arcade.Sprite):
 
 
 class TelaMenu(arcade.View):
+    def __init__(self):
+        super().__init__()
+
+        self.fundo = arcade.load_texture("fundoMenu.png")
+
     def on_show_view(self):
         arcade.set_background_color(arcade.color.AMAZON)
 
     def on_draw(self):
         self.clear()
 
-        desenhar_texto_central("COLETOR DE TESOUROS", 430, 32, arcade.color.YELLOW)
+        arcade.draw_texture_rect(
+            self.fundo,
+            arcade.LBWH(0, 0, LARGURA, ALTURA)
+        )
+
+        desenhar_texto_central(
+            "COLETOR DE TESOUROS",
+            430,
+            32,
+            arcade.color.YELLOW
+        )
 
         opcoes = [
             "[J] Jogar",
@@ -132,6 +160,7 @@ class TelaMenu(arcade.View):
         ]
 
         altura = 330
+
         for opcao in opcoes:
             desenhar_texto_central(opcao, altura)
             altura -= 45
@@ -143,16 +172,28 @@ class TelaMenu(arcade.View):
             self.window.show_view(TelaInstrucoes())
         elif key == arcade.key.S:
             self.window.show_view(TelaSobre())
+        elif key == arcade.key.R:
+            self.window.show_view(TelaJogo())
         elif key == arcade.key.ESCAPE:
             arcade.close_window()
 
 
 class TelaInstrucoes(arcade.View):
+    def __init__(self):
+        super().__init__()
+
+        self.fundo = arcade.load_texture("fundoMenu.png")
+
     def on_show_view(self):
         arcade.set_background_color(arcade.color.AMAZON)
 
     def on_draw(self):
         self.clear()
+
+        arcade.draw_texture_rect(
+            self.fundo,
+            arcade.LBWH(0, 0, LARGURA, ALTURA)
+        )
 
         desenhar_texto_central("INSTRUÇÕES", 530, 30)
 
@@ -160,31 +201,48 @@ class TelaInstrucoes(arcade.View):
             "Colete todas as moedas para terminar o jogo.",
             "Cada moeda normal vale 1 ponto.",
             "A moeda especial rebate nas paredes e vale 5 pontos.",
-            "O inimigo comum rebate nas paredes e tira 1 ponto.",
+            "Os inimigos normais patrulham as plataformas e tiram 1 ponto.",
             "O inimigo especial persegue o jogador.",
             "Depois da colisão, o inimigo especial teletransporta.",
             "Movimentação: teclas WASD ou setas direcionais.",
         ]
 
         altura = 455
+
         for texto in instrucoes:
-            arcade.draw_text(texto, 70, altura, arcade.color.WHITE, 16)
+            arcade.draw_text(
+                texto,
+                70,
+                altura,
+                arcade.color.WHITE,
+                16
+            )
             altura -= 43
 
-        desenhar_texto_central("[M] ou [ESC] Voltar ao menu", 100, 16, arcade.color.LIGHT_GRAY)
+        desenhar_texto_central(
+            "[M] ou [ESC] Voltar ao menu",
+            100,
+            16,
+            arcade.color.LIGHT_GRAY
+        )
 
     def on_key_press(self, key, modifiers):
         if key == arcade.key.M or key == arcade.key.ESCAPE:
             self.window.show_view(TelaMenu())
 
-
 class TelaSobre(arcade.View):
     def __init__(self):
         super().__init__()
 
+        self.fundo = arcade.load_texture("fundoMenu.png")
+
         self.lista_avatares = arcade.SpriteList()
 
-        self.avatar = arcade.Sprite("personagem-direita.png", scale=0.08)
+        self.avatar = arcade.Sprite(
+            "personagem-direita.png",
+            scale=0.08
+        )
+
         self.avatar.center_x = LARGURA / 2
         self.avatar.center_y = 270
 
@@ -196,13 +254,37 @@ class TelaSobre(arcade.View):
     def on_draw(self):
         self.clear()
 
-        desenhar_texto_central("SOBRE O JOGO", 500, 30)
-        desenhar_texto_central("Desenvolvido por:", 420)
-        desenhar_texto_central("Vitor Rufino Brumatti - 3º Info", 375, 20, arcade.color.YELLOW)
+        arcade.draw_texture_rect(
+            self.fundo,
+            arcade.LBWH(0, 0, LARGURA, ALTURA)
+        )
+
+        desenhar_texto_central(
+            "SOBRE O JOGO",
+            500,
+            30
+        )
+
+        desenhar_texto_central(
+            "Desenvolvido por:",
+            420
+        )
+
+        desenhar_texto_central(
+            "Vitor Rufino Brumatti - 3º Info",
+            375,
+            20,
+            arcade.color.YELLOW
+        )
 
         self.lista_avatares.draw()
 
-        desenhar_texto_central("[M] ou [ESC] Voltar ao menu", 100, 16, arcade.color.LIGHT_GRAY)
+        desenhar_texto_central(
+            "[M] ou [ESC] Voltar ao menu",
+            100,
+            16,
+            arcade.color.LIGHT_GRAY
+        )
 
     def on_key_press(self, key, modifiers):
         if key == arcade.key.M or key == arcade.key.ESCAPE:
@@ -220,11 +302,13 @@ class TelaJogo(arcade.View):
         self.tempo_alerta = 0.0
 
         self.tempo_sem_novo_dano = 0.0
+        self.fundo = arcade.load_texture("fundo.png")
 
         self.lista_jogador = arcade.SpriteList()
         self.lista_moedas = arcade.SpriteList()
         self.lista_inimigos = arcade.SpriteList()
         self.lista_inimigo_especial = arcade.SpriteList()
+        self.lista_plataformas = arcade.SpriteList()
 
         self.jogador = Jogador()
         self.jogador.center_x = LARGURA / 2
@@ -243,25 +327,25 @@ class TelaJogo(arcade.View):
         self.lista_paredes.append(chao)
 
         plataformas = [
-            (150, 160, 180, 20),
-            (400, 270, 180, 20),
-            (650, 380, 180, 20),
+            (170, 170),
+            (400, 250),
+            (650, 180),
+            (260, 400),
+            (560, 430),
         ]
 
-        for x, y, largura, altura in plataformas:
-            plataforma = arcade.SpriteSolidColor(
-                largura,
-                altura,
-                arcade.color.DARK_GREEN,
-            )
+        for x, y in plataformas:
+            plataforma = Plataforma()
             plataforma.center_x = x
             plataforma.center_y = y
-
-            self.lista_paredes.append(plataforma)
+            self.lista_plataformas.append(plataforma)
 
         self.physics_engine = arcade.PhysicsEnginePlatformer(
             self.jogador,
-            platforms=self.lista_paredes,
+            walls=[
+                self.lista_paredes,
+                self.lista_plataformas
+            ],
             gravity_constant=GRAVIDADE,
         )
 
@@ -277,11 +361,18 @@ class TelaJogo(arcade.View):
         self.moeda_especial.change_y = 3
         self.lista_moedas.append(self.moeda_especial)
 
-        self.inimigo = Inimigo()
-        self.posicionar_sem_colisao(self.inimigo, self.lista_moedas)
-        self.inimigo.change_x = 2
-        self.inimigo.change_y = 2
-        self.lista_inimigos.append(self.inimigo)
+        self.inimigo1 = InimigoPlataforma(
+            self.lista_plataformas[0],
+            velocidade=1
+        )
+
+        self.inimigo2 = InimigoPlataforma(
+            self.lista_plataformas[2],
+            velocidade=2
+        )
+
+        self.lista_inimigos.append(self.inimigo1)
+        self.lista_inimigos.append(self.inimigo2)
 
         self.inimigo_especial = InimigoEspecial(self.jogador)
         self.posicionar_sem_colisao(
@@ -294,23 +385,30 @@ class TelaJogo(arcade.View):
         arcade.set_background_color(arcade.color.AMAZON)
 
     def posicionar_sem_colisao(self, sprite, lista_existente):
-        """Sorteia uma posição sem colocar o objeto sobre o jogador."""
-
         for tentativa in range(100):
             sprite.center_x = random.randint(50, LARGURA - 50)
             sprite.center_y = random.randint(50, ALTURA - 50)
 
             colidiu_jogador = arcade.check_for_collision(
                 sprite,
-                self.jogador,
+                self.jogador
             )
 
             colidiu_lista = arcade.check_for_collision_with_list(
                 sprite,
-                lista_existente,
+                lista_existente
             )
 
-            if not colidiu_jogador and len(colidiu_lista) == 0:
+            colidiu_plataforma = arcade.check_for_collision_with_list(
+                sprite,
+                self.lista_plataformas
+            )
+
+            if (
+                not colidiu_jogador
+                and len(colidiu_lista) == 0
+                and len(colidiu_plataforma) == 0
+            ):
                 return
 
     def ativar_alerta(self):
@@ -319,8 +417,14 @@ class TelaJogo(arcade.View):
 
     def on_draw(self):
         self.clear()
-        self.lista_paredes.draw()
+        arcade.draw_texture_rect(
+            self.fundo,
+            arcade.LBWH(0, 0, LARGURA, ALTURA)
+        )
 
+
+        self.lista_plataformas.draw()
+        self.lista_paredes.draw()
         self.lista_moedas.draw()
         self.lista_inimigos.draw()
         self.lista_inimigo_especial.draw()
@@ -353,13 +457,22 @@ class TelaJogo(arcade.View):
     def on_update(self, delta_time):
         self.tempo += delta_time
 
-        self.lista_jogador.update()
         self.lista_moedas.update()
         self.lista_inimigos.update()
         self.lista_inimigo_especial.update()
 
         self.physics_engine.update()
 
+        if self.jogador.change_x > 0:
+            self.jogador.texture = self.jogador.textura_direita
+        elif self.jogador.change_x < 0:
+            self.jogador.texture = self.jogador.textura_esquerda
+
+        if self.jogador.left < 0:
+            self.jogador.left = 0
+
+        if self.jogador.right > LARGURA:
+            self.jogador.right = LARGURA
         if self.tempo_alerta > 0:
             self.tempo_alerta -= delta_time
 
@@ -454,11 +567,18 @@ class TelaGameOver(arcade.View):
 
         desenhar_texto_central(f"Pontuação final: {self.pontos}", 300, 20)
         desenhar_texto_central(f"Tempo total: {self.tempo:.1f} segundos", 260, 18)
-        desenhar_texto_central("[M] Voltar ao menu   |   [ESC] Sair", 160, 16, arcade.color.LIGHT_GRAY)
+        desenhar_texto_central(
+            "[R] Reiniciar   |   [M] Menu   |   [ESC] Sair",
+            160,
+            16,
+            arcade.color.LIGHT_GRAY
+        )
 
     def on_key_press(self, key, modifiers):
         if key == arcade.key.M:
             self.window.show_view(TelaMenu())
+        elif key == arcade.key.R:
+            self.window.show_view(TelaJogo())
         elif key == arcade.key.ESCAPE:
             arcade.close_window()
 
