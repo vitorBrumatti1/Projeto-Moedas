@@ -25,7 +25,7 @@ def desenhar_texto_central(texto, altura, tamanho=18, cor=arcade.color.WHITE):
 
 class Jogador(arcade.Sprite):
     def __init__(self):
-        super().__init__("personagem-direita.png", scale=0.1)
+        super().__init__("personagem-direita.png", scale=0.08)
 
         self.textura_direita = arcade.load_texture("personagem-direita.png")
         self.textura_esquerda = arcade.load_texture("personagem-esquerda.png")
@@ -319,7 +319,7 @@ class TelaJogo(arcade.View):
 
         chao = arcade.SpriteSolidColor(
             LARGURA,
-            30,
+            0.5,
             arcade.color.DARK_GREEN,
         )
         chao.center_x = LARGURA / 2
@@ -330,7 +330,7 @@ class TelaJogo(arcade.View):
             (170, 170),
             (400, 250),
             (650, 180),
-            (260, 400),
+            (260, 350),
             (560, 430),
         ]
 
@@ -368,7 +368,7 @@ class TelaJogo(arcade.View):
 
         self.inimigo2 = InimigoPlataforma(
             self.lista_plataformas[2],
-            velocidade=2
+            velocidade=1.5
         )
 
         self.lista_inimigos.append(self.inimigo1)
@@ -421,7 +421,6 @@ class TelaJogo(arcade.View):
             self.fundo,
             arcade.LBWH(0, 0, LARGURA, ALTURA)
         )
-
 
         self.lista_plataformas.draw()
         self.lista_paredes.draw()
