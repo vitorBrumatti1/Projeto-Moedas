@@ -334,7 +334,7 @@ class TelaJogo(arcade.View):
         self.lista_jogador.append(self.jogador)
         self.criar_chao()
         self.plataformas_suspensas = []
-        for x, y in [(170, 170), (400, 250), (650, 180), (260, 380), (560, 430)]:
+        for x, y in [(170, 170), (400, 250), (650, 180), (260, 380), (560, 400)]:
             bloco = Bloco()
             bloco.position = (x, y)
             self.lista_blocos.append(bloco)
