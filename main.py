@@ -495,9 +495,11 @@ class TelaGameOver(arcade.View):
         self.pontos, self.tempo = pontos, tempo
         self.nome_jogador, self.salvo = '', False
         self.mensagem = 'Digite seu nome e pressione ENTER para salvar.'
+        self.fundo = arcade.load_texture(asset('fundoMenu.png'))
 
     def on_draw(self):
         self.clear()
+        fundo_cobertura(self.fundo)
         if self.pontos == PONTUACAO_MAXIMA:
             texto_central('VITÓRIA PERFEITA!', 500, 32, arcade.color.GOLD)
         else:
